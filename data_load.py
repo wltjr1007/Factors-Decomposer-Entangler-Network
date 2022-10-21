@@ -214,7 +214,26 @@ def process_oxford():
     raw_path = st.raw_data_path+"oxford/"
     if not os.path.exists(raw_path+"jpg"):
         with tarfile.open(raw_path+"102flowers.tgz", "r:gz") as f:
-            f.extractall(raw_path)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(f, raw_path)
 
     all_lbl = scipy.io.loadmat(raw_path+"imagelabels.mat")["labels"].squeeze()
     all_dat_64 = np.zeros(shape=(len(all_lbl), 64, 64, st.C), dtype=np.uint8)
